@@ -5,47 +5,184 @@ startCommand:
     type: object
     required: []
     properties:
+      # Database Type Selection
+      dbType:
+        type: string
+        description: Database type to connect to
+        default: "mysql"
+        enum: ["mysql", "postgresql", "sqlite"]
+
+      # Generic Database Settings (recommended)
+      dbHost:
+        type: string
+        description: Database host address (MySQL/PostgreSQL)
+        default: "127.0.0.1"
+      dbPort:
+        type: string
+        description: Database port (3306 for MySQL, 5432 for PostgreSQL)
+        default: "3306"
+      dbUser:
+        type: string
+        description: Database username
+        default: "root"
+      dbPass:
+        type: string
+        description: Database password
+      dbName:
+        type: string
+        description: Database name. Leave empty for multi-DB mode (MySQL/PostgreSQL only)
+        default: ""
+      dbConnectionLimit:
+        type: string
+        description: Connection pool size
+        default: "10"
+
+      # MySQL-Specific Settings (backward compatibility)
       mysqlSocketPath:
         type: string
         description: Unix socket path for local MySQL connections. If provided, host and port are ignored.
       mysqlHost:
         type: string
-        description: The host address of the MySQL database. Ignored if socket path is provided.
+        description: MySQL host address. Ignored if socket path is provided.
         default: "127.0.0.1"
       mysqlPort:
         type: string
-        description: The port number for connecting to MySQL. Ignored if socket path is provided.
+        description: MySQL port number. Ignored if socket path is provided.
         default: "3306"
       mysqlUser:
         type: string
-        description: The username for MySQL authentication.
+        description: MySQL username
         default: "root"
       mysqlPass:
         type: string
-        description: The password for the specified MySQL user.
+        description: MySQL password
       mysqlDb:
         type: string
-        description: The database name to connect to. If left blank, retrieves all databases.
-        default: "db"
+        description: MySQL database name. If left blank, enables multi-DB mode.
+        default: ""
+
+      # PostgreSQL-Specific Settings
+      postgresqlHost:
+        type: string
+        description: PostgreSQL host address
+        default: "127.0.0.1"
+      postgresqlPort:
+        type: string
+        description: PostgreSQL port number
+        default: "5432"
+      postgresqlDb:
+        type: string
+        description: PostgreSQL database name. Leave empty for multi-DB mode.
+        default: ""
+
+      # SQLite-Specific Settings
+      sqliteDb:
+        type: string
+        description: SQLite database file path or ":memory:" for in-memory database
+        default: ":memory:"
+
+      # SSL/TLS Configuration
       ssl:
         type: boolean
         default: false
-        description: If set to true, the connection will use SSL.
+        description: Enable SSL/TLS connection (recommended for cloud databases)
       rejectUnauthorizedSSL:
         type: boolean
+        default: true
+        description: Verify SSL certificate (set false for self-signed certs)
+      sslCa:
+        type: string
+        description: Path to CA certificate file
+      sslCert:
+        type: string
+        description: Path to client certificate file
+      sslKey:
+        type: string
+        description: Path to client key file
+
+      # Security & Permissions
+      readOnlyMode:
+        type: boolean
         default: false
-        description: If set to true, the connection will verify the SSL certificate.
+        description: Enable global read-only mode (blocks all write operations)
+      multiDbWriteMode:
+        type: boolean
+        default: false
+        description: Allow write operations in multi-DB mode (use with caution)
+
+      # Global Write Permissions
       allowInsertOperation:
         type: boolean
-        default: true
-        description: If set to true, INSERT operations will be allowed.
+        default: false
+        description: Allow INSERT operations globally
       allowUpdateOperation:
         type: boolean
-        default: true
-        description: If set to true, UPDATE operations will be allowed.
+        default: false
+        description: Allow UPDATE operations globally
       allowDeleteOperation:
         type: boolean
         default: false
-        description: If set to true, DELETE operations will be allowed.
+        description: Allow DELETE operations globally
+      allowDdlOperation:
+        type: boolean
+        default: false
+        description: Allow DDL operations (CREATE, ALTER, DROP, TRUNCATE) globally
+
+      # Schema-Specific Permissions
+      schemaInsertPermissions:
+        type: string
+        description: Schema-specific INSERT permissions (format "schema1:true,schema2:false")
+        default: ""
+      schemaUpdatePermissions:
+        type: string
+        description: Schema-specific UPDATE permissions (format "schema1:true,schema2:false")
+        default: ""
+      schemaDeletePermissions:
+        type: string
+        description: Schema-specific DELETE permissions (format "schema1:true,schema2:false")
+        default: ""
+      schemaDdlPermissions:
+        type: string
+        description: Schema-specific DDL permissions (format "schema1:true,schema2:false")
+        default: ""
     commandFunction: |-
-      (config) => ({ "command": "node", "args": ["dist/index.js"], "env": { "MYSQL_SOCKET_PATH": config.mysqlSocketPath, "MYSQL_HOST": config.mysqlHost, "MYSQL_PORT": config.mysqlPort, "MYSQL_USER": config.mysqlUser, "MYSQL_PASS": config.mysqlPass, "MYSQL_DB": config.mysqlDb, "MYSQL_SSL": config.ssl, "MYSQL_SSL_REJECT_UNAUTHORIZED": config.rejectUnauthorizedSSL, "ALLOW_INSERT_OPERATION": config.allowInsertOperation, "ALLOW_UPDATE_OPERATION": config.allowUpdateOperation, "ALLOW_DELETE_OPERATION": config.allowDeleteOperation } })
+      (config) => ({
+        "command": "node",
+        "args": ["dist/index.js"],
+        "env": {
+          "DB_TYPE": config.dbType,
+          "DB_HOST": config.dbHost,
+          "DB_PORT": config.dbPort,
+          "DB_USER": config.dbUser,
+          "DB_PASS": config.dbPass,
+          "DB_NAME": config.dbName,
+          "DB_CONNECTION_LIMIT": config.dbConnectionLimit,
+          "MYSQL_SOCKET_PATH": config.mysqlSocketPath,
+          "MYSQL_HOST": config.mysqlHost,
+          "MYSQL_PORT": config.mysqlPort,
+          "MYSQL_USER": config.mysqlUser,
+          "MYSQL_PASS": config.mysqlPass,
+          "MYSQL_DB": config.mysqlDb,
+          "POSTGRESQL_HOST": config.postgresqlHost,
+          "POSTGRESQL_PORT": config.postgresqlPort,
+          "POSTGRESQL_DB": config.postgresqlDb,
+          "SQLITE_DB": config.sqliteDb,
+          "DB_SSL": config.ssl,
+          "DB_SSL_REJECT_UNAUTHORIZED": config.rejectUnauthorizedSSL,
+          "DB_SSL_CA": config.sslCa,
+          "DB_SSL_CERT": config.sslCert,
+          "DB_SSL_KEY": config.sslKey,
+          "MYSQL_SSL": config.ssl,
+          "MYSQL_SSL_REJECT_UNAUTHORIZED": config.rejectUnauthorizedSSL,
+          "DB_READ_ONLY_MODE": config.readOnlyMode,
+          "MULTI_DB_WRITE_MODE": config.multiDbWriteMode,
+          "ALLOW_INSERT_OPERATION": config.allowInsertOperation,
+          "ALLOW_UPDATE_OPERATION": config.allowUpdateOperation,
+          "ALLOW_DELETE_OPERATION": config.allowDeleteOperation,
+          "ALLOW_DDL_OPERATION": config.allowDdlOperation,
+          "SCHEMA_INSERT_PERMISSIONS": config.schemaInsertPermissions,
+          "SCHEMA_UPDATE_PERMISSIONS": config.schemaUpdatePermissions,
+          "SCHEMA_DELETE_PERMISSIONS": config.schemaDeletePermissions,
+          "SCHEMA_DDL_PERMISSIONS": config.schemaDdlPermissions
+        }
+      })
